@@ -10,6 +10,7 @@ python = "^3.8"
 pyaml = "^20.4.0"
 typer = "^0.3.2"
 pydantic = "^1.7.3"
+termcolor = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.5.4"

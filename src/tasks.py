@@ -5,6 +5,7 @@ from pprint import pprint
 from typing import List, Optional
 
 from pydantic import BaseModel
+from termcolor import colored, cprint
 
 
 class Task(BaseModel):
@@ -51,7 +52,6 @@ def hash_dict(tasks: Task_List):
             
             task_dict[no_cat][to_hash(task=task)] = task.dict()
 
-    pprint(task_dict)
 
     return task_dict
 
@@ -68,33 +68,50 @@ def to_console(tasks : Task_List):
 
     task_hash_dict = hash_dict(tasks)
 
+    longest_cat = max(list(map(len,task_hash_dict.keys())))
+    longest_name = max([len(task.name) for task in tasks.todos])
+
+
     for key in task_hash_dict.keys():
 
-        print(f'Cat {key}')
+        category = key
 
         for task_hash in task_hash_dict[key]:
-            print(f'\t{task_hash}')
+            task = Task(**task_hash_dict[category][task_hash])
+
+            task_hash_str = f'{task_hash}'
+            date = f'-> [{task.deadline.strftime("%d-%d-%Y")}]' if task.deadline else ' '*15
+            whitespace_cat = ' '*(longest_cat-len(category))
+            whitespace_name = ' '*(longest_name-len(task.name))
+
+            print(
+                colored(task_hash_str,'yellow'),
+                colored(f'{date}','red'),
+                colored(f'({category})','green'),
+                colored(f'{whitespace_cat}{task.name}{whitespace_name}','cyan'),
+                f': {task.desc}'
+            )
 
 
 
 if __name__ == "__main__":
     tasks = []
-    tasks.append(Task(name="Task 1", desc="Test Task"))
-    tasks.append(Task(name="Task 2", desc="test 2", deadline='2019-01-01'))
+    tasks.append(Task(name="gitodo", desc="Test Task"))
+    tasks.append(Task(name="a", desc="Continue this program", deadline='2019-01-01'))
     tasks.append(Task(name="Task 3", desc="test 2", deadline='2019-01-02'))
 
-    tasks.append(Task(name="Task 4", desc="test 2",
-                      deadline='2019-01-01', cat="1"))
+    tasks.append(Task(name="dinner", desc="make dinner",
+                      deadline='2019-01-01', cat="gitodo"))
     tasks.append(Task(name="Task 5", desc="test 2",
-                      deadline='2019-01-02', cat="1"))
+                      deadline='2019-01-02', cat="gitodo"))
 
     tasks.append(Task(name="Task 6", desc="test 2",
-                      deadline='2019-06-12', cat="2"))
+                      deadline='2019-12-01', cat="2"))
     tasks.append(Task(name="Task 7", desc="test 2",
-                      deadline='2019-07-12', cat="2"))
+                      deadline='2019-12-02', cat="2"))
 
     t = Task_List(todos=tasks)
 
-    hash_dict(t)
+    # hash_dict(t)
 
     to_console(t)

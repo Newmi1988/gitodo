@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "gitodo"
+version = "0.1.0"
+description = "A cli todo program with a human readable format (yaml)."
+authors = ["Newmi <newmi1988@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pyaml = "^20.4.0"
+typer = "^0.3.2"
+pydantic = "^1.7.3"
+
+[tool.poetry.dev-dependencies]
+autopep8 = "^1.5.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -32,6 +32,87 @@ class Task_List(BaseModel):
     def to_hashed_tasks(self):
         return Hashed_Tasks(tasks = self)
 
+    def _hash_dict(self) -> Dict[str,Dict[str,Dict]]:
+        """Create hash for every task that functions as key
+
+        Args:
+            tasks : listed tasks
+
+        Returns:
+            a dict with cat as first key and hash as task key
+        """
+        ordered_tasks = self.order()
+        no_cat = "_"
+        task_dict = {}
+        for task in ordered_tasks.todos:
+            if task.cat:
+                if task.cat not in task_dict.keys():
+                    task_dict[task.cat] = {}
+
+                task_dict[task.cat][task.to_hash()] = task.dict()
+
+            else:
+                if no_cat not in task_dict.keys():
+                    task_dict[no_cat] = {} 
+                
+                task_dict[no_cat][task.to_hash()] = task.dict()
+
+        return task_dict
+
+    def to_console(self) -> None:
+        """Generate a colorcoded terminal output of the tasks
+
+        Args:
+            tasks : the list of tasks
+        """
+        task_hash_dict = self._hash_dict()
+        if task_hash_dict == {}:
+            raise ValueError("No task present yet")
+        longest_cat = max(list(map(len,task_hash_dict.keys())))
+        longest_name = max([len(task.name) for task in self.todos])
+
+
+        for key in task_hash_dict.keys():
+
+            category = key
+
+            for task_hash in task_hash_dict[key]:
+                task = Task(**task_hash_dict[category][task_hash])
+
+                task_hash_str = f'{task_hash}'
+                date = f'-> [{task.deadline.strftime("%d-%d-%Y")}]' if task.deadline else ' '*15
+                whitespace_cat = ' '*(longest_cat-len(category))
+                whitespace_name = ' '*(longest_name-len(task.name))
+
+                print(
+                    colored(task_hash_str,'yellow'),
+                    colored(f'{date}','red'),
+                    colored(f'({category})','green'),
+                    colored(f'{whitespace_cat}{task.name}{whitespace_name}','cyan'),
+                    f': {task.desc}'
+                )
+
+    def order(self) -> "Task_List":
+        """Order the task list by cat and due date
+
+        Args:
+            tasks : Task_List object
+
+        Returns:
+            ordere Task_List object
+        """
+        task_list = self.todos
+
+        # get cats and order them
+        cat_tasks = [t for t in task_list if t.cat]
+        cat_tasks.sort(key=lambda x: (x.cat, x.deadline is None))
+
+        non_cat_tasks = [t for t in task_list if not t.cat]
+        non_cat_tasks.sort(key=lambda x: (x.deadline is None, x.deadline))
+
+        return Task_List(todos=cat_tasks + non_cat_tasks)
+
+
 TASKS_PATH = Path(".gitodo")
 
 class Tasks:
@@ -67,15 +148,14 @@ class Tasks:
             tasks = Task_List(todos = task_list)
             )
 
-    @property
-    def list(self) -> List[Task]:
-        return self._task_list
+    def to_list(self) -> List[Task]:
+        return self._task_list.todos
 
     def print(self) -> None:
         """Generate terminal output
         """
         try:
-            to_console(self._task_list)
+            self._task_list.to_console()
         except ValueError as ve:
             print(str(ve))
 
@@ -159,7 +239,7 @@ class Hashed_Tasks:
         Args:
             tasks : a Task_List object
         """
-        self._hashed_tasks = hash_dict(tasks = tasks)
+        self._hashed_tasks = tasks._hash_dict()
 
     def _pop(self, task : Task) -> Task:
         """Pop tasks from the dict
@@ -178,7 +258,6 @@ class Hashed_Tasks:
 
         for (cat,task_hash) in matches:
             return self._hashed_tasks[cat].pop(task_hash)
-
 
     @property
     def hashed(self):
@@ -213,89 +292,6 @@ class Hashed_Tasks:
         """
         if isinstance(o, (date, datetime)):
             return o.isoformat()
-
-def hash_dict(tasks: Task_List) -> Dict[str,Dict[str,Dict]]:
-    """Create hash for every task that functions as key
-
-    Args:
-        tasks : listed tasks
-
-    Returns:
-        a dict with cat as first key and hash as task key
-    """
-    ordered_tasks = order(tasks=tasks)
-    no_cat = "_"
-    task_dict = {}
-    for task in ordered_tasks.todos:
-        if task.cat:
-            if task.cat not in task_dict.keys():
-                task_dict[task.cat] = {}
-
-            task_dict[task.cat][task.to_hash()] = task.dict()
-
-        else:
-            if no_cat not in task_dict.keys():
-                task_dict[no_cat] = {} 
-            
-            task_dict[no_cat][task.to_hash()] = task.dict()
-
-    return task_dict
-
-
-def order(tasks: Task_List) -> Task_List:
-    """Order the task list by cat and due date
-
-    Args:
-        tasks : Task_List object
-
-    Returns:
-        ordere Task_List object
-    """
-    task_list = tasks.todos
-
-    # get cats and order them
-    cat_tasks = [t for t in task_list if t.cat]
-    cat_tasks.sort(key=lambda x: (x.cat, x.deadline is None))
-
-    non_cat_tasks = [t for t in task_list if not t.cat]
-    non_cat_tasks.sort(key=lambda x: (x.deadline is None, x.deadline))
-
-    return Task_List(todos=cat_tasks + non_cat_tasks)
-
-
-def to_console(tasks : Task_List) -> None:
-    """Generate a colorcoded terminal output of the tasks
-
-    Args:
-        tasks : the list of tasks
-    """
-    task_hash_dict = hash_dict(tasks)
-    if task_hash_dict == {}:
-        raise ValueError("No task present yet")
-    longest_cat = max(list(map(len,task_hash_dict.keys())))
-    longest_name = max([len(task.name) for task in tasks.todos])
-
-
-    for key in task_hash_dict.keys():
-
-        category = key
-
-        for task_hash in task_hash_dict[key]:
-            task = Task(**task_hash_dict[category][task_hash])
-
-            task_hash_str = f'{task_hash}'
-            date = f'-> [{task.deadline.strftime("%d-%d-%Y")}]' if task.deadline else ' '*15
-            whitespace_cat = ' '*(longest_cat-len(category))
-            whitespace_name = ' '*(longest_name-len(task.name))
-
-            print(
-                colored(task_hash_str,'yellow'),
-                colored(f'{date}','red'),
-                colored(f'({category})','green'),
-                colored(f'{whitespace_cat}{task.name}{whitespace_name}','cyan'),
-                f': {task.desc}'
-            )
-
 
 def find_task_for_hash(hashed_tasks : Hashed_Tasks, short_hash : str) -> Task_List:
     """Find tasks mathing a hash or part of a hash
@@ -337,50 +333,4 @@ def find_task_for_name(tasks : Task_List, name : str) -> Task_List:
         raise KeyError("Task name not found")
 
 
-if __name__ == "__main__":
-    tasks = []
-    tasks.append(Task(name="gitodo", desc="Test Task"))
-    tasks.append(Task(name="a", desc="Continue this program", deadline='2019-01-01'))
-    tasks.append(Task(name="Task 3", desc="test 2", deadline='2019-01-02'))
 
-    tasks.append(Task(name="dinner", desc="make dinner",
-                      deadline='2019-01-01', cat="gitodo"))
-    tasks.append(Task(name="Task 5", desc="test 2",
-                      deadline='2019-01-02', cat="gitodo"))
-
-    tasks.append(Task(name="Task 6", desc="test 2",
-                      deadline='2019-12-01', cat="2"))
-    tasks.append(Task(name="Task 7", desc="test 2",
-                      deadline='2019-12-02', cat="2"))
-
-    t = Task_List(todos=tasks)
-
-    # hash_dict(t)
-
-    # to_console(t)
-
-    Test = Tasks(tasks= t)
-    # Test.print()
-
-        
-    t = Task(
-        name = "Blub", 
-        desc ="Make blub", 
-        deadline="2021-12-31",
-        cat = "Test")
-        
-    # TODO : Fix adding task
-    Test.add_task(t)
-
-    print(t.json())
-
-    # print(Test.find_task(task_hash="421"))
-    # print(Test.find_task(task_name="Task 6"))
-
-    # Test.finish_task(task_hash="421")
-
-    Test.print()
-    Test.save()
-
-    Test_2 = Tasks.from_file(Path("./tasks.json"))
-    Test_2.print()

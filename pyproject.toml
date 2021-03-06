@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "gitodo"
 version = "0.1.0"
-description = "A cli todo program with a human readable format (yaml)."
+description = "A cli todo program with a human readable format (json)."
 authors = ["Newmi <newmi1988@gmail.com>"]
 license = "MIT"
 
@@ -14,6 +14,9 @@ termcolor = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 autopep8 = "^1.5.4"
+
+[tool.poetry.scripts]
+gitodo="gitodo.app:app"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

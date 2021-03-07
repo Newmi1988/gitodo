@@ -32,6 +32,9 @@ class Task_List(BaseModel):
     def to_hashed_tasks(self):
         return Hashed_Tasks(tasks = self)
 
+    def to_list(self):
+        return self.todos
+
     def _hash_dict(self) -> Dict[str,Dict[str,Dict]]:
         """Create hash for every task that functions as key
 
@@ -44,7 +47,7 @@ class Task_List(BaseModel):
         ordered_tasks = self.order()
         no_cat = "_"
         task_dict = {}
-        for task in ordered_tasks.todos:
+        for task in ordered_tasks.to_list():
             if task.cat:
                 if task.cat not in task_dict.keys():
                     task_dict[task.cat] = {}
@@ -149,7 +152,7 @@ class Tasks:
             )
 
     def to_list(self) -> List[Task]:
-        return self._task_list.todos
+        return self._task_list.to_list()
 
     def print(self) -> None:
         """Generate terminal output
@@ -199,11 +202,15 @@ class Tasks:
             task_hash = task_hash,
             task_name = task_name
         )
-        if len(matched_tasks.todos) != 1:
-            print("No specific task could be found")
+        num_matched = len(matched_tasks.to_list())
+        if num_matched != 1:
+            if num_matched > 1:
+                print("Selection criteria found more than one task.")
+            if num_matched == 0:
+                print("No specific task could be found")
         else:
-            self._hashed_tasks_dict._pop(task=matched_tasks.todos[0])
-            print(f"Task {matched_tasks.todos[0]} removed from list")
+            self._hashed_tasks_dict._pop(task=matched_tasks.to_list()[0])
+            print(f"Task {matched_tasks.to_list()[0]} removed from list")
             self._task_list = self._hashed_tasks_dict.to_task_list()
 
     def save(self, path : Path = None) -> None:
@@ -322,7 +329,7 @@ def find_task_for_hash(hashed_tasks : Hashed_Tasks, short_hash : str) -> Task_Li
 
 def find_task_for_name(tasks : Task_List, name : str) -> Task_List:
     task_matches = list()    
-    for task in tasks.todos:
+    for task in tasks.to_list():
         # TODO : Use fuzzy matching
         if task.name == name:
             task_matches.append(task)

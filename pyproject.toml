@@ -14,6 +14,7 @@ termcolor = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
 newmi1988_dev_deps = {git = "https://github.com/Newmi1988/poetry-dev-packges.git", branch="main"}
+isort = "^5.8.0"
 
 [tool.poetry.scripts]
 gitodo="gitodo.app:app"

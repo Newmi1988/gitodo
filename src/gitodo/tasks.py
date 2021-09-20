@@ -2,10 +2,10 @@ import json
 from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel
-from termcolor import colored, cprint
+from termcolor import colored
 
 
 class Task(BaseModel):
@@ -171,7 +171,7 @@ class Tasks:
         self._task_list.todos.append(task)
         self._hashed_tasks_dict = self._task_list.to_hashed_tasks()
 
-    def find_task(self, task_hash : str = "", task_name : str = "") -> List[Task]:
+    def find_task(self, task_hash : str = "", task_name : str = "") -> Task_List:
         """Find a task by name or part of the hash. Returns a list with all mathing tasks
 
         Args:
@@ -240,7 +240,7 @@ class Tasks:
         self.save()
 
 class Hashed_Tasks:
-    def __init__(self, tasks : Task_List) -> List[Task]:
+    def __init__(self, tasks : Task_List) -> None:
         """Hash representation of the tasks
 
         Args:
@@ -248,7 +248,7 @@ class Hashed_Tasks:
         """
         self._hashed_tasks = tasks._hash_dict()
 
-    def _pop(self, task : Task) -> Task:
+    def _pop(self, task : Task) -> Union[Task,None]:
         """Pop tasks from the dict
 
         Args:
@@ -263,8 +263,12 @@ class Hashed_Tasks:
                 if task == task_value:
                     matches.append((cat_key,task_hash))
 
-        for (cat,task_hash) in matches:
-            return self._hashed_tasks[cat].pop(task_hash)
+        try:
+            for (cat,task_hash) in matches:
+                return self._hashed_tasks[cat].pop(task_hash)
+
+        except KeyError:
+            return None
 
     @property
     def hashed(self):

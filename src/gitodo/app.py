@@ -1,13 +1,8 @@
 #!/usr/bin/python
 
-import datetime
-from datetime import date
-from pathlib import Path
 from typing import Optional
 
 import typer
-import yaml
-from typer.params import Option
 
 from gitodo.tasks import TASKS_PATH, Task, Tasks
 

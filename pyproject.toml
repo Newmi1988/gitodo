@@ -8,7 +8,7 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.8"
 pyaml = "^20.4.0"
-typer = "^0.3.2"
+typer = ">=0.3.2"
 pydantic = "^1.7.3"
 termcolor = "^1.1.0"
 
@@ -16,6 +16,7 @@ termcolor = "^1.1.0"
 newmi1988_dev_deps = {git = "https://github.com/Newmi1988/poetry-dev-packges.git", branch="main"}
 isort = "^5.8.0"
 pynvim = "^0.4.3"
+black = "^22.6.0"
 
 [tool.poetry.scripts]
 gitodo="gitodo.app:app"

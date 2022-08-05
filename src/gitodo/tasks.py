@@ -16,12 +16,8 @@ class Task(BaseModel):
 
     def to_hash(self):
         short_digest = sha256(
-            json.dumps(
-                self.dict(), 
-                sort_keys=True, 
-                default=str
-                ).encode('utf-8')
-            ).hexdigest()[:10]
+            json.dumps(self.dict(), sort_keys=True, default=str).encode("utf-8")
+        ).hexdigest()[:10]
 
         return short_digest
 
@@ -30,12 +26,12 @@ class Task_List(BaseModel):
     todos: List[Task]
 
     def to_hashed_tasks(self):
-        return Hashed_Tasks(tasks = self)
+        return Hashed_Tasks(tasks=self)
 
     def to_list(self):
         return self.todos
 
-    def _hash_dict(self) -> Dict[str,Dict[str,Dict]]:
+    def _hash_dict(self) -> Dict[str, Dict[str, Dict]]:
         """Create hash for every task that functions as key
 
         Args:
@@ -56,8 +52,8 @@ class Task_List(BaseModel):
 
             else:
                 if no_cat not in task_dict.keys():
-                    task_dict[no_cat] = {} 
-                
+                    task_dict[no_cat] = {}
+
                 task_dict[no_cat][task.to_hash()] = task.dict()
 
         return task_dict
@@ -71,9 +67,8 @@ class Task_List(BaseModel):
         task_hash_dict = self._hash_dict()
         if task_hash_dict == {}:
             raise ValueError("No task present yet")
-        longest_cat = max(list(map(len,task_hash_dict.keys())))
+        longest_cat = max(list(map(len, task_hash_dict.keys())))
         longest_name = max([len(task.name) for task in self.todos])
-
 
         for key in task_hash_dict.keys():
 
@@ -82,17 +77,21 @@ class Task_List(BaseModel):
             for task_hash in task_hash_dict[key]:
                 task = Task(**task_hash_dict[category][task_hash])
 
-                task_hash_str = f'{task_hash}'
-                date = f'-> [{task.deadline.strftime("%d-%d-%Y")}]' if task.deadline else ' '*15
-                whitespace_cat = ' '*(longest_cat-len(category))
-                whitespace_name = ' '*(longest_name-len(task.name))
+                task_hash_str = f"{task_hash}"
+                date = (
+                    f'-> [{task.deadline.strftime("%d-%d-%Y")}]'
+                    if task.deadline
+                    else " " * 15
+                )
+                whitespace_cat = " " * (longest_cat - len(category))
+                whitespace_name = " " * (longest_name - len(task.name))
 
                 print(
-                    colored(task_hash_str,'yellow'),
-                    colored(f'{date}','red'),
-                    colored(f'({category})','green'),
-                    colored(f'{whitespace_cat}{task.name}{whitespace_name}','cyan'),
-                    f': {task.desc}'
+                    colored(task_hash_str, "yellow"),
+                    colored(f"{date}", "red"),
+                    colored(f"({category})", "green"),
+                    colored(f"{whitespace_cat}{task.name}{whitespace_name}", "cyan"),
+                    f": {task.desc}",
                 )
 
     def order(self) -> "Task_List":
@@ -118,8 +117,11 @@ class Task_List(BaseModel):
 
 TASKS_PATH = Path(".gitodo")
 
+
 class Tasks:
-    def __init__(self, path : Path = TASKS_PATH, tasks : Task_List = Task_List(todos=[])) -> None:
+    def __init__(
+        self, path: Path = TASKS_PATH, tasks: Task_List = Task_List(todos=[])
+    ) -> None:
         """A object to handle all tasks
 
         Args:
@@ -127,42 +129,37 @@ class Tasks:
             tasks : Task_List object
         """
         self.path = Path(path)
-        self._task_list  = tasks
+        self._task_list = tasks
         self._hashed_tasks_dict = self._task_list.to_hashed_tasks()
 
-
     @classmethod
-    def from_file(cls, path : Path = TASKS_PATH) -> "Tasks":
+    def from_file(cls, path: Path = TASKS_PATH) -> "Tasks":
         """Load tasks from a json file
 
         Returns:
             Tasks object
         """
-        with open(path,'r') as tasks_json_file:
+        with open(path, "r") as tasks_json_file:
             tasks_dict = json.load(tasks_json_file)
 
         task_list = list()
-        for (_,cat_tasks) in tasks_dict.items():
+        for (_, cat_tasks) in tasks_dict.items():
             for task in cat_tasks.values():
                 task_list.append(Task(**task))
 
-        return cls(
-            path = path,
-            tasks = Task_List(todos = task_list)
-            )
+        return cls(path=path, tasks=Task_List(todos=task_list))
 
     def to_list(self) -> List[Task]:
         return self._task_list.to_list()
 
     def print(self) -> None:
-        """Generate terminal output
-        """
+        """Generate terminal output"""
         try:
             self._task_list.to_console()
         except ValueError as ve:
             print(str(ve))
 
-    def add_task(self, task : Task) -> None:
+    def add_task(self, task: Task) -> None:
         """Add a task to the list
 
         Args:
@@ -171,7 +168,7 @@ class Tasks:
         self._task_list.todos.append(task)
         self._hashed_tasks_dict = self._task_list.to_hashed_tasks()
 
-    def find_task(self, task_hash : str = "", task_name : str = "") -> Task_List:
+    def find_task(self, task_hash: str = "", task_name: str = "") -> Task_List:
         """Find a task by name or part of the hash. Returns a list with all mathing tasks
 
         Args:
@@ -181,26 +178,25 @@ class Tasks:
         Returns:
             listed Task objects
         """
-        try:        
+        try:
             if task_hash != "":
-                return find_task_for_hash(self._hashed_tasks_dict, short_hash= task_hash)
+                return find_task_for_hash(self._hashed_tasks_dict, short_hash=task_hash)
 
             if task_name != "":
-                return find_task_for_name(self._task_list, name = task_name) 
+                return find_task_for_name(self._task_list, name=task_name)
 
         except KeyError as ke:
             print(str(ke))
 
-    def finish_task(self, task_hash : str = "", task_name : str = "") -> None:
+    def finish_task(self, task_hash: str = "", task_name: str = "") -> None:
         """Finish a task. It will be removed from the list.
 
         Args:
             task_hash : Hash of the task object. Defaults to "".
             task_name : Name of the task. Defaults to "".
         """
-        matched_tasks : Task_List = self.find_task(
-            task_hash = task_hash,
-            task_name = task_name
+        matched_tasks: Task_List = self.find_task(
+            task_hash=task_hash, task_name=task_name
         )
         num_matched = len(matched_tasks.to_list())
         if num_matched != 1:
@@ -213,7 +209,7 @@ class Tasks:
             print(f"Task {matched_tasks.to_list()[0]} removed from list")
             self._task_list = self._hashed_tasks_dict.to_task_list()
 
-    def save(self, path : Path = None) -> None:
+    def save(self, path: Path = None) -> None:
         """Export the tasks to a json file
 
         Args:
@@ -222,25 +218,26 @@ class Tasks:
         if path is None:
             path = self.path
 
-        Path("".join(path.parts[:-1])).mkdir(parents=True, exist_ok=True)                
+        Path("".join(path.parts[:-1])).mkdir(parents=True, exist_ok=True)
 
-        with open(path,"w") as json_file:
+        with open(path, "w") as json_file:
             json.dump(
                 obj=self._hashed_tasks_dict.hashed,
                 default=self._hashed_tasks_dict._hashed_task_serializer,
                 fp=json_file,
                 ensure_ascii=True,
-                indent=2
+                indent=2,
             )
 
     def __enter__(self) -> "Tasks":
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_traceback): 
+    def __exit__(self, exc_type, exc_value, exc_traceback):
         self.save()
 
+
 class Hashed_Tasks:
-    def __init__(self, tasks : Task_List) -> None:
+    def __init__(self, tasks: Task_List) -> None:
         """Hash representation of the tasks
 
         Args:
@@ -248,23 +245,23 @@ class Hashed_Tasks:
         """
         self._hashed_tasks = tasks._hash_dict()
 
-    def _pop(self, task : Task) -> Union[Task,None]:
+    def _pop(self, task: Task) -> Union[Task, None]:
         """Pop tasks from the dict
 
         Args:
-            task : task that should be removed 
+            task : task that should be removed
 
         Returns:
             poped task
         """
         matches = list()
-        for (cat_key,cat_task) in self._hashed_tasks.items():
-            for (task_hash,task_value) in cat_task.items():
+        for (cat_key, cat_task) in self._hashed_tasks.items():
+            for (task_hash, task_value) in cat_task.items():
                 if task == task_value:
-                    matches.append((cat_key,task_hash))
+                    matches.append((cat_key, task_hash))
 
         try:
-            for (cat,task_hash) in matches:
+            for (cat, task_hash) in matches:
                 return self._hashed_tasks[cat].pop(task_hash)
 
         except KeyError:
@@ -292,7 +289,7 @@ class Hashed_Tasks:
 
         return Task_List(todos=task_list)
 
-    def _hashed_task_serializer(self,o):
+    def _hashed_task_serializer(self, o):
         """Internal function to seriialize the object, specific the datetime object
 
         Args:
@@ -304,7 +301,8 @@ class Hashed_Tasks:
         if isinstance(o, (date, datetime)):
             return o.isoformat()
 
-def find_task_for_hash(hashed_tasks : Hashed_Tasks, short_hash : str) -> Task_List:
+
+def find_task_for_hash(hashed_tasks: Hashed_Tasks, short_hash: str) -> Task_List:
     """Find tasks mathing a hash or part of a hash
 
     Args:
@@ -315,13 +313,13 @@ def find_task_for_hash(hashed_tasks : Hashed_Tasks, short_hash : str) -> Task_Li
         KeyError: if a tasked could not be found
 
     Returns:
-        
+
     """
     task_matches = list()
     # hashed_tasks = hash_dict(tasks)
     for hashed_task_cat in hashed_tasks.hashed.keys():
         cat_x_tasks = hashed_tasks.hashed[hashed_task_cat]
-        for hashed_task_key in cat_x_tasks.keys(): 
+        for hashed_task_key in cat_x_tasks.keys():
             if short_hash in hashed_task_key:
                 task_matches.append(Task(**cat_x_tasks[hashed_task_key]))
 
@@ -331,8 +329,8 @@ def find_task_for_hash(hashed_tasks : Hashed_Tasks, short_hash : str) -> Task_Li
         raise KeyError("Task hash not found")
 
 
-def find_task_for_name(tasks : Task_List, name : str) -> Task_List:
-    task_matches = list()    
+def find_task_for_name(tasks: Task_List, name: str) -> Task_List:
+    task_matches = list()
     for task in tasks.to_list():
         # TODO : Use fuzzy matching
         if task.name == name:
@@ -342,6 +340,3 @@ def find_task_for_name(tasks : Task_List, name : str) -> Task_List:
         return Task_List(todos=task_matches)
     else:
         raise KeyError("Task name not found")
-
-
-

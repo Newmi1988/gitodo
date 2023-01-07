@@ -1,5 +1,5 @@
 test:
-  poetry run pytest
+  poetry run pytest --cov-report term-missing --cov=src tests/
 
 format:
   black ./src

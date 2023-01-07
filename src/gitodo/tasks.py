@@ -31,6 +31,9 @@ class Task_List(BaseModel):
     def to_list(self):
         return self.todos
 
+    def __len__(self):
+        return len(self.todos)
+
     def _hash_dict(self) -> Dict[str, Dict[str, Dict]]:
         """Create hash for every task that functions as key
 
@@ -58,24 +61,42 @@ class Task_List(BaseModel):
 
         return task_dict
 
-    def to_console(self) -> None:
+    def filter_by_category(
+        self,
+        hash_dict: Dict[str, Dict[str, Dict]],
+        category: str,
+    ) -> Dict[str, Dict[str, Dict]]:
+        try:
+            return {category: hash_dict[category]}
+        except KeyError:
+            print(f"Category {category} not found in tasks")
+            return {}
+
+    def to_console(self, cat: str = None) -> None:
         """Generate a colorcoded terminal output of the tasks
 
         Args:
-            tasks : the list of tasks
+            cat : category to filter by
         """
         task_hash_dict = self._hash_dict()
+        if cat:
+            task_hash_dict = self.filter_by_category(
+                hash_dict=task_hash_dict,
+                category=cat,
+            )
+        else:
+            pass
         if task_hash_dict == {}:
-            raise ValueError("No task present yet")
+            raise ValueError("No tasks found")
         longest_cat = max(list(map(len, task_hash_dict.keys())))
         longest_name = max([len(task.name) for task in self.todos])
 
         for key in task_hash_dict.keys():
 
-            category = key
+            cat = key
 
             for task_hash in task_hash_dict[key]:
-                task = Task(**task_hash_dict[category][task_hash])
+                task = Task(**task_hash_dict[cat][task_hash])
 
                 task_hash_str = f"{task_hash}"
                 date = (
@@ -83,13 +104,13 @@ class Task_List(BaseModel):
                     if task.deadline
                     else " " * 15
                 )
-                whitespace_cat = " " * (longest_cat - len(category))
+                whitespace_cat = " " * (longest_cat - len(cat))
                 whitespace_name = " " * (longest_name - len(task.name))
 
                 print(
                     colored(task_hash_str, "yellow"),
                     colored(f"{date}", "red"),
-                    colored(f"({category})", "green"),
+                    colored(f"({cat})", "green"),
                     colored(f"{whitespace_cat}{task.name}{whitespace_name}", "cyan"),
                     f": {task.desc}",
                 )
@@ -101,7 +122,7 @@ class Task_List(BaseModel):
             tasks : Task_List object
 
         Returns:
-            ordere Task_List object
+            ordered Task_List object
         """
         task_list = self.todos
 
@@ -120,7 +141,9 @@ TASKS_PATH = Path(".gitodo")
 
 class Tasks:
     def __init__(
-        self, path: Path = TASKS_PATH, tasks: Task_List = Task_List(todos=[])
+        self,
+        path: Union[Path, str] = TASKS_PATH,
+        tasks: Task_List = Task_List(todos=[]),
     ) -> None:
         """A object to handle all tasks
 
@@ -152,10 +175,13 @@ class Tasks:
     def to_list(self) -> List[Task]:
         return self._task_list.to_list()
 
-    def print(self) -> None:
+    def __len__(self) -> int:
+        return len(self._task_list)
+
+    def print(self, cat: Optional[str] = None) -> None:
         """Generate terminal output"""
         try:
-            self._task_list.to_console()
+            self._task_list.to_console(cat)
         except ValueError as ve:
             print(str(ve))
 
@@ -168,25 +194,36 @@ class Tasks:
         self._task_list.todos.append(task)
         self._hashed_tasks_dict = self._task_list.to_hashed_tasks()
 
-    def find_task(self, task_hash: str = "", task_name: str = "") -> Task_List:
+    def find_task(
+        self, task_hash: Optional[str] = None, task_name: Optional[str] = None
+    ) -> Task_List:
         """Find a task by name or part of the hash. Returns a list with all mathing tasks
 
         Args:
-            task_hash : Hast of the task. Defaults to "".
-            task_name : Name of the task. Defaults to "".
+            task_hash : Hast of the task. Defaults to None
+            task_name : Name of the task. Defaults to None
 
         Returns:
             listed Task objects
         """
         try:
-            if task_hash != "":
+            if task_hash and task_name:
+                return find_task_for_name(
+                    tasks=find_task_for_hash(
+                        self._hashed_tasks_dict, short_hash=task_hash
+                    ),
+                    name=task_name,
+                )
+
+            if task_hash:
                 return find_task_for_hash(self._hashed_tasks_dict, short_hash=task_hash)
 
-            if task_name != "":
+            if task_name:
                 return find_task_for_name(self._task_list, name=task_name)
 
         except KeyError as ke:
             print(str(ke))
+            return Task_List(todos=[])
 
     def finish_task(self, task_hash: str = "", task_name: str = "") -> None:
         """Finish a task. It will be removed from the list.
@@ -200,22 +237,19 @@ class Tasks:
         )
         num_matched = len(matched_tasks.to_list())
         if num_matched != 1:
-            if num_matched > 1:
-                print("Selection criteria found more than one task.")
-            if num_matched == 0:
-                print("No specific task could be found")
+            print("No specific task could be found")
         else:
             self._hashed_tasks_dict._pop(task=matched_tasks.to_list()[0])
             print(f"Task {matched_tasks.to_list()[0]} removed from list")
             self._task_list = self._hashed_tasks_dict.to_task_list()
 
-    def save(self, path: Path = None) -> None:
+    def save(self, path: Optional[Path] = None) -> None:
         """Export the tasks to a json file
 
         Args:
             path : destination path. Defaults to path set in init.
         """
-        if path is None:
+        if not path:
             path = self.path
 
         Path("".join(path.parts[:-1])).mkdir(parents=True, exist_ok=True)
@@ -260,12 +294,9 @@ class Hashed_Tasks:
                 if task == task_value:
                     matches.append((cat_key, task_hash))
 
-        try:
-            for (cat, task_hash) in matches:
-                return self._hashed_tasks[cat].pop(task_hash)
+        for (cat, task_hash) in matches:
+            return self._hashed_tasks[cat].pop(task_hash)
 
-        except KeyError:
-            return None
 
     @property
     def hashed(self):
@@ -303,7 +334,7 @@ class Hashed_Tasks:
 
 
 def find_task_for_hash(hashed_tasks: Hashed_Tasks, short_hash: str) -> Task_List:
-    """Find tasks mathing a hash or part of a hash
+    """Find tasks matching a hash or part of a hash
 
     Args:
         hashed_tasks : hashed tasks
@@ -320,7 +351,7 @@ def find_task_for_hash(hashed_tasks: Hashed_Tasks, short_hash: str) -> Task_List
     for hashed_task_cat in hashed_tasks.hashed.keys():
         cat_x_tasks = hashed_tasks.hashed[hashed_task_cat]
         for hashed_task_key in cat_x_tasks.keys():
-            if short_hash in hashed_task_key:
+            if hashed_task_key.startswith(short_hash):
                 task_matches.append(Task(**cat_x_tasks[hashed_task_key]))
 
     if len(task_matches) > 0:

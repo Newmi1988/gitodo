@@ -43,6 +43,29 @@ def add_task(
         typer.echo("Added task ")
 
 
+@app.command("get", help="Get specific task")
+def get_task(
+    name: Optional[str] = typer.Option(None, "--name", "-n"),
+    partial_hash: Optional[str] = typer.Option(None, "--partial-hash", "-h"),
+):
+    """Filter the task by name or partial hash
+
+    name : Name of the task.
+    partial_hash: Hash or part of hash to filter by
+
+    """
+    if not name and not partial_hash:
+        typer.echo("You have to supply a name and/or a partial hash")
+    else:
+        try:
+            Tasks.from_file().find_task(
+                task_hash=partial_hash, task_name=name
+            ).to_console()
+
+        except ValueError as ve:
+            print(ve)
+
+
 @app.command("finish")
 def finish_task(
     task_hash: Optional[str] = typer.Option(None, "--hash", "-h"),
@@ -58,9 +81,11 @@ def finish_task(
         tasks.finish_task(**command_args)
 
 
-@app.command("log")
-def list_all_tasks():
-    Tasks.from_file().print()
+@app.command("list")
+def list_all_tasks(
+    cat: Optional[str] = typer.Option(None, "--cat", "-c"),
+):
+    Tasks.from_file().print(cat)
 
 
 if __name__ == "__main__":

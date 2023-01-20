@@ -1,7 +1,7 @@
 test:
   poetry run pytest --cov-report term-missing --cov=src tests/
 
-format:
+fmt:
   black ./src
   isort .
 

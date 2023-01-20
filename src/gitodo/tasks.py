@@ -297,7 +297,6 @@ class Hashed_Tasks:
         for (cat, task_hash) in matches:
             return self._hashed_tasks[cat].pop(task_hash)
 
-
     @property
     def hashed(self):
         """Returns the hash dict

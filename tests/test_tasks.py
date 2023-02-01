@@ -6,7 +6,6 @@ import string
 from pathlib import Path
 
 import pytest
-from termcolor import colored
 
 from gitodo.tasks import TASKS_PATH, Task, Task_List, Tasks
 
@@ -17,7 +16,7 @@ def identity_task():
 
 
 def random_str():
-    return "".join(random.choice(string.ascii_lowercase) for i in range(10))
+    return "".join(random.choice(string.ascii_lowercase) for _ in range(10))
 
 
 def random_task_cat_x():
@@ -27,6 +26,7 @@ def random_task_cat_x():
         "cat": "Cat x",
         "deadline": "2021-01-01",
     }
+
 
 @pytest.fixture
 def task_cat_x():
@@ -68,7 +68,11 @@ class Test_Task_Class:
         }
 
     def test_task_with_deadline(self):
-        t = Task(name="name", desc="desc", deadline="2021-01-01")
+        t = Task(
+            name="name",
+            desc="desc",
+            deadline="2021-01-01",  # type: ignore
+        )
 
         assert t.dict() == {
             "name": "name",
@@ -88,8 +92,12 @@ class Test_Task_Class:
         }
 
     def test_task_with_cat_deadline(self):
-        t = Task(name="name", desc="desc", cat="cat", deadline="2021-01-01")
-
+        t = Task(
+            name="name",
+            desc="desc",
+            cat="cat",
+            deadline="2021-01-01",  # type: ignore
+        )
         assert t.dict() == {
             "name": "name",
             "desc": "desc",
@@ -106,43 +114,43 @@ class Test_Task_Class:
 
 @pytest.fixture
 def random_task_list():
-    l = list()
+    random_tasks = list()
     for _ in range(20):
         random_task_generator = random.choice(
             [random_task_cat_y, random_task_cat_x, random_task_no_cat]
         )
-        l.append(Task(**random_task_generator()))
+        random_tasks.append(Task(**random_task_generator()))
 
-    return Task_List(todos=l)
+    return Task_List(todos=random_tasks)
 
 
 class Test_Task_List:
     def test_creation(self):
 
-        l = list()
+        random_tasks_cat_x = list()
         for _ in range(10):
-            l.append(Task(**random_task_cat_x()))
+            random_tasks_cat_x.append(Task(**random_task_cat_x()))
 
-        tl = Task_List(todos=l)
+        task_list = Task_List(todos=random_tasks_cat_x)
 
-        for i, j in zip(l, tl.todos):
+        for i, j in zip(random_tasks_cat_x, task_list.todos):
             assert i == j
 
     def test_to_console(self, identity_task, capsys):
         t = Task_List(todos=[identity_task])
         t.to_console()
-        out, err = capsys.readouterr()
+        out, _ = capsys.readouterr()
         out = re.sub(
             r"\x1b\[([0-9,A-Z]{1,2}(;[0-9]{1,2})?(;[0-9]{3})?)?[m|K]?", "", out
         )
 
-        desired_string = f"{identity_task.to_hash()}                 ({identity_task.cat}) {identity_task.name} : {identity_task.desc}"
+        desired_string = f"{identity_task.to_hash()}                 ({identity_task.cat}) {identity_task.name} : {identity_task.desc}"  # type: ignore
         assert out.replace("\n", "") == desired_string
 
     def test_to_console_filter(self, identity_task, capsys):
         t = Task_List(todos=[identity_task])
         t.to_console(cat="cat")
-        out, err = capsys.readouterr()
+        out, _ = capsys.readouterr()
         assert len(out) > 0
 
     def test_to_console_filter_raises_exception(self, identity_task, capsys):
@@ -219,7 +227,7 @@ class Test_Tasks:
 
         t = empty_tasks.to_list()
 
-        t[0].cat == test_task.cat
+        assert t[0].cat == test_task.cat
 
     def test_find_task_by_name(self, empty_tasks, identity_task):
 
@@ -234,7 +242,7 @@ class Test_Tasks:
     def test_print(self, empty_tasks, identity_task, capsys):
 
         empty_tasks.print()
-        out, err = capsys.readouterr()
+        out, _ = capsys.readouterr()
         assert out.replace("\n", "") == "No tasks found"
 
     def test_finish_task(self, empty_tasks, identity_task, task_cat_x):
@@ -276,18 +284,6 @@ class Test_Tasks:
         assert found_task[0].desc == identity_task.desc
         assert found_task[0].cat == identity_task.cat
 
-    def test_find_task_by_hash_wrong_hash(self, empty_tasks, identity_task, capsys):
-        empty_tasks.add_task(identity_task)
-        empty_tasks.find_task(task_hash="abc")
-        out, err = capsys.readouterr()
-        assert out.replace("\n", "").replace("'", "") == "Task hash not found"
-
-    def test_find_task_by_hash_wrong_name(self, empty_tasks, identity_task, capsys):
-        empty_tasks.add_task(identity_task)
-        empty_tasks.find_task(task_name="abc")
-        out, err = capsys.readouterr()
-        assert out.replace("\n", "").replace("'", "") == "Task name not found"
-
     def test_save(self, random_task_list):
         test_save = Path("./tests/.gitodo.delme")
         t = Tasks(
@@ -321,5 +317,4 @@ class Test_Tasks:
         assert p.is_file()
 
         with Tasks.from_file(p) as tasks:
-            assert len(tasks) > 0 
-
+            assert len(tasks) > 0

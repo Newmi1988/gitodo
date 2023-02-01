@@ -3,5 +3,6 @@ test:
 
 fmt:
   black ./src
+  black ./tests
   isort .
 

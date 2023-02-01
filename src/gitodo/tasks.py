@@ -14,12 +14,10 @@ class Task(BaseModel):
     cat: Optional[str] = None
     deadline: Optional[date] = None
 
-    def to_hash(self):
-        short_digest = sha256(
+    def to_hash(self) -> str:
+        return sha256(
             json.dumps(self.dict(), sort_keys=True, default=str).encode("utf-8")
         ).hexdigest()[:10]
-
-        return short_digest
 
 
 class Task_List(BaseModel):
@@ -72,7 +70,7 @@ class Task_List(BaseModel):
             print(f"Category {category} not found in tasks")
             return {}
 
-    def to_console(self, cat: str = None) -> None:
+    def to_console(self, cat: Optional[str] = "") -> None:
         """Generate a colorcoded terminal output of the tasks
 
         Args:
@@ -197,7 +195,8 @@ class Tasks:
     def find_task(
         self, task_hash: Optional[str] = None, task_name: Optional[str] = None
     ) -> Task_List:
-        """Find a task by name or part of the hash. Returns a list with all mathing tasks
+        """Find a task by name or part of the hash. Returns a list with all
+            mathing tasks
 
         Args:
             task_hash : Hast of the task. Defaults to None
@@ -215,11 +214,14 @@ class Tasks:
                     name=task_name,
                 )
 
-            if task_hash:
+            elif task_hash:
                 return find_task_for_hash(self._hashed_tasks_dict, short_hash=task_hash)
 
-            if task_name:
+            elif task_name:
                 return find_task_for_name(self._task_list, name=task_name)
+
+            else:
+                return Task_List(todos=[])
 
         except KeyError as ke:
             print(str(ke))
@@ -239,8 +241,11 @@ class Tasks:
         if num_matched != 1:
             print("No specific task could be found")
         else:
-            self._hashed_tasks_dict._pop(task=matched_tasks.to_list()[0])
-            print(f"Task {matched_tasks.to_list()[0]} removed from list")
+            try:
+                self._hashed_tasks_dict._delete(task=matched_tasks.to_list()[0])
+                print(f"Task {matched_tasks.to_list()[0]} removed from list")
+            except KeyError:
+                print("Task could not be found")
             self._task_list = self._hashed_tasks_dict.to_task_list()
 
     def save(self, path: Optional[Path] = None) -> None:
@@ -277,9 +282,9 @@ class Hashed_Tasks:
         Args:
             tasks : a Task_List object
         """
-        self._hashed_tasks = tasks._hash_dict()
+        self._hashed_tasks: Dict[str, Dict[str, Dict]] = tasks._hash_dict()
 
-    def _pop(self, task: Task) -> Union[Task, None]:
+    def _delete(self, task: Task) -> Optional[Task]:
         """Pop tasks from the dict
 
         Args:
@@ -295,7 +300,7 @@ class Hashed_Tasks:
                     matches.append((cat_key, task_hash))
 
         for (cat, task_hash) in matches:
-            return self._hashed_tasks[cat].pop(task_hash)
+            self._hashed_tasks[cat].pop(task_hash)
 
     @property
     def hashed(self):
@@ -353,10 +358,7 @@ def find_task_for_hash(hashed_tasks: Hashed_Tasks, short_hash: str) -> Task_List
             if hashed_task_key.startswith(short_hash):
                 task_matches.append(Task(**cat_x_tasks[hashed_task_key]))
 
-    if len(task_matches) > 0:
-        return Task_List(todos=task_matches)
-    else:
-        raise KeyError("Task hash not found")
+    return Task_List(todos=task_matches)
 
 
 def find_task_for_name(tasks: Task_List, name: str) -> Task_List:
@@ -366,7 +368,4 @@ def find_task_for_name(tasks: Task_List, name: str) -> Task_List:
         if task.name == name:
             task_matches.append(task)
 
-    if len(task_matches) > 0:
-        return Task_List(todos=task_matches)
-    else:
-        raise KeyError("Task name not found")
+    return Task_List(todos=task_matches)

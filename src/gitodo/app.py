@@ -58,9 +58,9 @@ def get_task(
         typer.echo("You have to supply a name and/or a partial hash")
     else:
         try:
-            Tasks.from_file().find_task(
-                task_hash=partial_hash, task_name=name
-            ).to_console()
+            task = Tasks.from_file().find_task(task_hash=partial_hash, task_name=name)
+            if task:
+                task.to_console()
 
         except ValueError as ve:
             print(ve)

@@ -38,9 +38,17 @@ def add_task(
     if command_args == {"name": "name", "desc": "desc"}:
         typer.echo("Default arguments, no task was created")
     else:
-        with Tasks.from_file() as tasks:
-            tasks.add_task(Task(**command_args))
-        typer.echo("Added task ")
+        try:
+            with Tasks.from_file() as tasks:
+                tasks.add_task(Task(**command_args))
+            typer.echo("Added task ")
+
+        except FileNotFoundError:
+            typer.echo(
+                message="""Please use 'gitodo init' to create the task file. \n
+                        After that you can add tasks""",
+                err = True
+            )
 
 
 @app.command("get", help="Get specific task")

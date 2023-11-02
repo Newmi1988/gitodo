@@ -160,8 +160,13 @@ class Tasks:
         Returns:
             Tasks object
         """
-        with open(path, "r") as tasks_json_file:
-            tasks_dict = json.load(tasks_json_file)
+        try:
+            with open(path, "r") as tasks_json_file:
+                tasks_dict = json.load(tasks_json_file)
+
+        except FileNotFoundError:
+            print("Task file was not found")
+            raise 
 
         task_list = list()
         for (_, cat_tasks) in tasks_dict.items():
